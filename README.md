@@ -27,7 +27,7 @@ Dijkstra's algorithm works in a "greedy" fashion. It maintains a set of visited 
 
 The efficiency of Dijkstra's algorithm hinges on its priority queue, which essentially sorts vertices by their current shortest distance. Using an advanced data structure like a Fibonacci heap, this leads to a time complexity of **$O(m + n \\log n)$**, where `n` is the number of vertices and `m` is the number of edges.
 
-For a long time, this was considered the optimal solution. The `$n \log n$` term, known as the **"sorting barrier,"** seemed unbreakable because the algorithm's core logic relies on repeatedly finding the "minimum" element from a potentially large set of candidates.
+For a long time, this was considered the optimal solution. The $n \log n$ term, known as the **"sorting barrier,"** seemed unbreakable because the algorithm's core logic relies on repeatedly finding the "minimum" element from a potentially large set of candidates.
 
 ### 2\. The Bellman-Ford Algorithm: Handling Negative Weights
 
