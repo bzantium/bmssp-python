@@ -1,14 +1,14 @@
 import os
-import pickle
+import msgpack
 import hashlib
 import time
-from typing import Optional
-from .graph import Graph
+from typing import Optional, Dict, List, Any
+from .graph import Graph, Edge
 
 class GraphCache:
     """
     Handles caching of Graph objects to speed up repeated dataset loading.
-    Uses pickle for serialization and file modification time + size for cache validation.
+    Uses msgpack for fast serialization and file modification time + size for cache validation.
     """
     
     def __init__(self, cache_dir: str = "data/.cache"):
@@ -20,6 +20,51 @@ class GraphCache:
         """
         self.cache_dir = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
+    
+    def _serialize_graph(self, graph: Graph) -> bytes:
+        """
+        Convert Graph object to msgpack-serializable format.
+        
+        Args:
+            graph: Graph object to serialize
+            
+        Returns:
+            Serialized bytes using msgpack
+        """
+        # Convert adjacency list to a simple format: [vertices, [[to, weight], ...], ...]
+        # Ensure all values are native Python types (not numpy types)
+        adj_data = []
+        for vertex_edges in graph.adj:
+            edge_list = [[int(edge.to), float(edge.weight)] for edge in vertex_edges]
+            adj_data.append(edge_list)
+        
+        graph_data = {
+            'vertices': int(graph.vertices),
+            'adj': adj_data
+        }
+        
+        return msgpack.packb(graph_data, use_bin_type=True)
+    
+    def _deserialize_graph(self, data: bytes) -> Graph:
+        """
+        Convert msgpack data back to Graph object.
+        
+        Args:
+            data: Serialized graph data
+            
+        Returns:
+            Reconstructed Graph object
+        """
+        graph_data = msgpack.unpackb(data, raw=False)
+        
+        graph = Graph(graph_data['vertices'])
+        
+        # Reconstruct adjacency list
+        for vertex_idx, edge_list in enumerate(graph_data['adj']):
+            for to, weight in edge_list:
+                graph.adj[vertex_idx].append(Edge(to, weight))
+        
+        return graph
     
     def _get_cache_key(self, file_path: str, is_directed: Optional[bool] = None) -> str:
         """
@@ -38,7 +83,7 @@ class GraphCache:
     
     def _get_cache_path(self, cache_key: str) -> str:
         """Get the full path for a cached file."""
-        return os.path.join(self.cache_dir, f"{cache_key}.pkl")
+        return os.path.join(self.cache_dir, f"{cache_key}.msgpack")
     
     def _get_metadata_path(self, cache_key: str) -> str:
         """Get the path for cache metadata file."""
@@ -115,7 +160,8 @@ class GraphCache:
             start_time = time.time()
             
             with open(cache_path, 'rb') as f:
-                graph = pickle.load(f)
+                data = f.read()
+                graph = self._deserialize_graph(data)
             
             load_time = time.time() - start_time
             print(f"Graph loaded from cache in {load_time:.3f} seconds")
@@ -123,7 +169,8 @@ class GraphCache:
             
             return graph
             
-        except (OSError, pickle.PickleError, AttributeError) as e:
+        except (OSError, msgpack.exceptions.ExtraData, msgpack.exceptions.UnpackException, 
+                msgpack.exceptions.UnpackValueError, KeyError, AttributeError) as e:
             print(f"Warning: Failed to load cached graph: {e}")
             # Remove corrupted cache files
             try:
@@ -151,8 +198,9 @@ class GraphCache:
             print(f"Saving graph to cache: {cache_path}")
             start_time = time.time()
             
+            serialized_data = self._serialize_graph(graph)
             with open(cache_path, 'wb') as f:
-                pickle.dump(graph, f, protocol=pickle.HIGHEST_PROTOCOL)
+                f.write(serialized_data)
             
             # Save metadata for cache validation
             self._save_metadata(file_path, cache_key)
@@ -161,14 +209,14 @@ class GraphCache:
             cache_size_mb = os.path.getsize(cache_path) / (1024 * 1024)
             print(f"Graph cached in {save_time:.3f} seconds ({cache_size_mb:.1f} MB)")
             
-        except (OSError, pickle.PickleError) as e:
+        except (OSError, msgpack.exceptions.PackException) as e:
             print(f"Warning: Failed to cache graph: {e}")
     
     def clear_cache(self):
         """Remove all cached files."""
         try:
             for filename in os.listdir(self.cache_dir):
-                if filename.endswith(('.pkl', '.meta')):
+                if filename.endswith(('.msgpack', '.meta')):
                     os.remove(os.path.join(self.cache_dir, filename))
             print("Cache cleared successfully")
         except OSError as e:
@@ -184,7 +232,7 @@ class GraphCache:
         
         try:
             if os.path.exists(self.cache_dir):
-                cache_files = [f for f in os.listdir(self.cache_dir) if f.endswith('.pkl')]
+                cache_files = [f for f in os.listdir(self.cache_dir) if f.endswith('.msgpack')]
                 info['cached_files'] = len(cache_files)
                 
                 total_size = sum(
