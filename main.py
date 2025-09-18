@@ -8,12 +8,13 @@ import pandas as pd
 
 from src.graph import Graph
 from graph_loader import load_dimacs_graph, load_snap_graph, get_file_size_mb
-from src.bmssp_solver import BmsspSolver, BmsspSolverV2
+from src.bmssp_solver import BmsspSolver
 from src.comparison_solvers import dijkstra, bellman_ford
 
 # A dictionary to manage the configurations for different datasets.
 # Each entry specifies how to load the data, its filename, properties,
 # and sample nodes for testing the shortest path algorithms.
+# Datasets are ordered by vertex count (smallest to largest).
 DATASETS = {
     "rome": {
         "loader": load_dimacs_graph,
@@ -22,29 +23,23 @@ DATASETS = {
         "start_node": 6,
         "end_node": 1778
     },
-    "livejournal": {
-        "url": "https://snap.stanford.edu/data/soc-LiveJournal1.txt.gz",
+    "stanford": {
+        "url": "https://snap.stanford.edu/data/web-Stanford.txt.gz",
         "loader": load_snap_graph,
-        "filename": "soc-LiveJournal1.txt",
+        "filename": "web-Stanford.txt",
         "is_directed": True,
-        "start_node": 1,
-        "end_node": 1000
+        "start_node": 235899,
+        "end_node": 23074,
+        "note": "Web graph - paths may not exist between arbitrary nodes due to disconnected components"
     },
-    "pokec": {
-        "url": "https://snap.stanford.edu/data/soc-pokec-relationships.txt.gz",
+    "google": {
+        "url": "https://snap.stanford.edu/data/web-Google.txt.gz",
         "loader": load_snap_graph,
-        "filename": "soc-pokec-relationships.txt",
+        "filename": "web-Google.txt",
         "is_directed": True,
-        "start_node": 1452585,
-        "end_node": 1618281
-    },
-    "california": {
-        "url": "https://snap.stanford.edu/data/roadNet-CA.txt.gz",
-        "loader": load_snap_graph,
-        "filename": "roadNet-CA.txt",
-        "is_directed": False,
-        "start_node": 807041,
-        "end_node": 1453117
+        "start_node": 895428,
+        "end_node": 228498,
+        "note": "Web graph - may have disconnected components"
     },
     "pennsylvania": {
         "url": "https://snap.stanford.edu/data/roadNet-PA.txt.gz",
@@ -62,23 +57,29 @@ DATASETS = {
         "start_node": 558629,
         "end_node": 613982
     },
-    "google": {
-        "url": "https://snap.stanford.edu/data/web-Google.txt.gz",
+    "pokec": {
+        "url": "https://snap.stanford.edu/data/soc-pokec-relationships.txt.gz",
         "loader": load_snap_graph,
-        "filename": "web-Google.txt",
+        "filename": "soc-pokec-relationships.txt",
         "is_directed": True,
-        "start_node": 895428,
-        "end_node": 228498,
-        "note": "Web graph - may have disconnected components"
+        "start_node": 1452585,
+        "end_node": 1618281
     },
-    "stanford": {
-        "url": "https://snap.stanford.edu/data/web-Stanford.txt.gz",
+    "california": {
+        "url": "https://snap.stanford.edu/data/roadNet-CA.txt.gz",
         "loader": load_snap_graph,
-        "filename": "web-Stanford.txt",
+        "filename": "roadNet-CA.txt",
+        "is_directed": False,
+        "start_node": 807041,
+        "end_node": 1453117
+    },
+    "livejournal": {
+        "url": "https://snap.stanford.edu/data/soc-LiveJournal1.txt.gz",
+        "loader": load_snap_graph,
+        "filename": "soc-LiveJournal1.txt",
         "is_directed": True,
-        "start_node": 235899,
-        "end_node": 23074,
-        "note": "Web graph - paths may not exist between arbitrary nodes due to disconnected components"
+        "start_node": 1469803,
+        "end_node": 4835730
     },
 }
 
@@ -135,7 +136,7 @@ def prepare_dataset(dataset_name: str, dataset_info: dict):
 
 
 
-def run_benchmark(dataset_name: str, solver_version: str, use_cache: bool = True):
+def run_benchmark(dataset_name: str, use_cache: bool = True):
     """
     Loads a specified graph and runs a comparative benchmark of the SSSP algorithms.
     """
@@ -181,12 +182,9 @@ def run_benchmark(dataset_name: str, solver_version: str, use_cache: bool = True
     print(f"\nFinding shortest path from node {source_node} to {goal_node}")
     print("-" * 50)
 
-    # Execute and time the selected BMSSP solver.
-    print(f"\nRunning BMSSP Algorithm (Version: {solver_version})...")
-    if solver_version == 'v2':
-        solver = BmsspSolverV2(graph)
-    else:
-        solver = BmsspSolver(graph)
+    # Execute and time the BMSSP solver.
+    print(f"\nRunning BMSSP Algorithm...")
+    solver = BmsspSolver(graph)
 
     start_time = time.time()
     bmssp_result = solver.solve(source_idx, goal_idx)
@@ -194,9 +192,9 @@ def run_benchmark(dataset_name: str, solver_version: str, use_cache: bool = True
     
     if bmssp_result:
         distance, path = bmssp_result
-        print(f"✅ BMSSP ({solver_version.upper()}) Result: Distance = {distance:.2f}, Path length = {len(path)} nodes")
+        print(f"✅ BMSSP Result: Distance = {distance:.2f}, Path length = {len(path)} nodes")
     else:
-        print(f"❌ BMSSP ({solver_version.upper()}): No path found.")
+        print(f"❌ BMSSP: No path found.")
     print(f"   Execution time: {end_time - start_time:.4f} seconds")
 
     # Execute and time Dijkstra's algorithm for a performance comparison.
@@ -248,9 +246,9 @@ def main():
     parser.add_argument(
         '--solver',
         type=str,
-        default='v2',
-        choices=['v1', 'v2'],
-        help="The BMSSP solver version to use. 'v1' is the basic implementation, 'v2' is the optimized version. Defaults to 'v2'."
+        default='v1',
+        choices=['v1'],
+        help="The BMSSP solver version to use. Currently only 'v1' (the educational implementation) is available."
     )
     parser.add_argument(
         '--no-cache',
@@ -268,7 +266,7 @@ def main():
         use_cache = False
     else:
         use_cache = not args.no_cache
-    run_benchmark(args.data, args.solver, use_cache)
+    run_benchmark(args.data, use_cache)
 
 
 if __name__ == "__main__":
