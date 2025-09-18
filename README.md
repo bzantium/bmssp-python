@@ -129,6 +129,6 @@ The optimized `BmsspSolverV2` is not just a theoretical improvement but also a p
 
 ## References
 
-  - **Primary Paper**: "Breaking the Sorting Barrier for Directed Single-Source Shortest Paths" by Ran Duan, Jiayi Mao, Xiao Mao, Xinkai Shu, Longhui Yin (2025)
+  - **Primary Paper**: [Breaking the Sorting Barrier for Directed Single-Source Shortest Paths](https://arxiv.org/abs/2504.17033)
   - **Rust Implementation**: [alphastrata/DunMaoSSSP](https://github.com/alphastrata/DunMaoSSSP.git)
   - **Go Implementation**: [mfreeman451/bmssp-go](https://github.com/mfreeman451/bmssp-go)
