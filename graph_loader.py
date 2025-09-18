@@ -15,6 +15,7 @@ def load_dimacs_graph(file_path: str, is_directed: bool = True, use_cache: bool 
     
     Args:
         file_path: Path to the DIMACS format file
+        is_directed: Whether to treat the graph as directed (True) or undirected (False)
         use_cache: Whether to use caching for faster repeated loads
     
     Returns:
