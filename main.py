@@ -8,7 +8,7 @@ import pandas as pd
 
 from src.graph import Graph
 from graph_loader import load_dimacs_graph, load_snap_graph, get_file_size_mb
-from src.bmssp_solver import BmsspSolver
+from src.bmssp_solver import BmsspSolver, BmsspSolverV2
 from src.comparison_solvers import dijkstra, bellman_ford
 
 # A dictionary to manage the configurations for different datasets.
@@ -136,7 +136,7 @@ def prepare_dataset(dataset_name: str, dataset_info: dict):
 
 
 
-def run_benchmark(dataset_name: str, use_cache: bool = True):
+def run_benchmark(dataset_name: str, solver_version: str, use_cache: bool = True):
     """
     Loads a specified graph and runs a comparative benchmark of the SSSP algorithms.
     """
@@ -182,9 +182,12 @@ def run_benchmark(dataset_name: str, use_cache: bool = True):
     print(f"\nFinding shortest path from node {source_node} to {goal_node}")
     print("-" * 50)
 
-    # Execute and time the BMSSP solver.
-    print(f"\nRunning BMSSP Algorithm...")
-    solver = BmsspSolver(graph)
+    # Execute and time the selected BMSSP solver.
+    print(f"\nRunning BMSSP Algorithm (Version: {solver_version})...")
+    if solver_version == 'v2':
+        solver = BmsspSolverV2(graph)
+    else:
+        solver = BmsspSolver(graph)
 
     start_time = time.time()
     bmssp_result = solver.solve(source_idx, goal_idx)
@@ -192,9 +195,9 @@ def run_benchmark(dataset_name: str, use_cache: bool = True):
     
     if bmssp_result:
         distance, path = bmssp_result
-        print(f"✅ BMSSP Result: Distance = {distance:.2f}, Path length = {len(path)} nodes")
+        print(f"✅ BMSSP ({solver_version.upper()}) Result: Distance = {distance:.2f}, Path length = {len(path)} nodes")
     else:
-        print(f"❌ BMSSP: No path found.")
+        print(f"❌ BMSSP ({solver_version.upper()}): No path found.")
     print(f"   Execution time: {end_time - start_time:.4f} seconds")
 
     # Execute and time Dijkstra's algorithm for a performance comparison.
@@ -246,9 +249,9 @@ def main():
     parser.add_argument(
         '--solver',
         type=str,
-        default='v1',
-        choices=['v1'],
-        help="The BMSSP solver version to use. Currently only 'v1' (the educational implementation) is available."
+        default='v2',
+        choices=['v1', 'v2'],
+        help="The BMSSP solver version to use. 'v1' is the basic implementation, 'v2' is the optimized version. Defaults to 'v2'."
     )
     parser.add_argument(
         '--no-cache',
@@ -266,7 +269,7 @@ def main():
         use_cache = False
     else:
         use_cache = not args.no_cache
-    run_benchmark(args.data, use_cache)
+    run_benchmark(args.data, args.solver, use_cache)
 
 
 if __name__ == "__main__":

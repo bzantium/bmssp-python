@@ -211,36 +211,3 @@ class GraphCache:
             
         except (OSError, msgpack.exceptions.PackException) as e:
             print(f"Warning: Failed to cache graph: {e}")
-    
-    def clear_cache(self):
-        """Remove all cached files."""
-        try:
-            for filename in os.listdir(self.cache_dir):
-                if filename.endswith(('.msgpack', '.meta')):
-                    os.remove(os.path.join(self.cache_dir, filename))
-            print("Cache cleared successfully")
-        except OSError as e:
-            print(f"Warning: Failed to clear cache: {e}")
-    
-    def get_cache_info(self) -> dict:
-        """Get information about cached files."""
-        info = {
-            'cache_dir': self.cache_dir,
-            'cached_files': 0,
-            'total_size_mb': 0.0
-        }
-        
-        try:
-            if os.path.exists(self.cache_dir):
-                cache_files = [f for f in os.listdir(self.cache_dir) if f.endswith('.msgpack')]
-                info['cached_files'] = len(cache_files)
-                
-                total_size = sum(
-                    os.path.getsize(os.path.join(self.cache_dir, f))
-                    for f in cache_files
-                )
-                info['total_size_mb'] = total_size / (1024 * 1024)
-        except OSError:
-            pass
-        
-        return info

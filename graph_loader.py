@@ -6,7 +6,7 @@ from src.graph_cache import GraphCache
 # Global cache instance
 _cache = GraphCache()
 
-def load_dimacs_graph(file_path: str, use_cache: bool = True) -> Graph:
+def load_dimacs_graph(file_path: str, is_directed: bool = True, use_cache: bool = True) -> Graph:
     """
     Parses a graph file in the 9th DIMACS Implementation Challenge format with optimizations.
     This format is structured with problem lines ('p'), comment lines ('c'),
@@ -160,13 +160,3 @@ def get_file_size_mb(file_path: str) -> float:
     """
     import os
     return os.path.getsize(file_path) / (1024 * 1024)
-
-
-def clear_graph_cache():
-    """Clear all cached graph files."""
-    _cache.clear_cache()
-
-
-def get_cache_info() -> dict:
-    """Get information about the current cache state."""
-    return _cache.get_cache_info()
